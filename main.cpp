@@ -11,7 +11,7 @@
 #include "visualSpace/cloud.cpp"
 #include "visualSpace/perspective.cpp"
 
-pointCloud CloudRepresentation;
+pointCloud GeneratedPoints;
 perspective DefaultViewpoint(0, 0, 3);
 
 const char* vertexShaderSrc = R"(
@@ -66,29 +66,20 @@ GLuint createProgram()
     return program;
 }
 
-std::vector<float> generatePointCloud(int count)
-{
-    std::vector<float> data;
-    data.reserve(count * 6);
+pointCloud generatePointCloud(int count){
+    pointCloud data(count);
+    Point newPoint;
+    for (int i = 0; i < count; i++){
+        newPoint.x = ((rand() % 200) / 100.0f) - 1.0f;
+        newPoint.y = ((rand() % 200) / 100.0f) - 1.0f;
+        newPoint.z = ((rand() % 200) / 100.0f) - 1.0f;
 
-    for (int i = 0; i < count; i++)
-    {
-        float x = ((rand() % 200) / 100.0f) - 1.0f;
-        float y = ((rand() % 200) / 100.0f) - 1.0f;
-        float z = ((rand() % 200) / 100.0f) - 1.0f;
+        newPoint.r = (rand() % 100) / 100.0f;
+        newPoint.g = (rand() % 100) / 100.0f;
+        newPoint.b = (rand() % 100) / 100.0f;
 
-        float r = (rand() % 100) / 100.0f;
-        float g = (rand() % 100) / 100.0f;
-        float b = (rand() % 100) / 100.0f;
-
-        data.push_back(x);
-        data.push_back(y);
-        data.push_back(z);
-        data.push_back(r);
-        data.push_back(g);
-        data.push_back(b);
+        data.addPoint(newPoint);
     }
-
     return data;
 }
 
@@ -111,7 +102,7 @@ int main()
 {
     glfwInit();
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Point Cloud", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1920, 1080, "Point Cloud", NULL, NULL);
     glfwMakeContextCurrent(window);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -122,7 +113,7 @@ int main()
 
     glEnable(GL_PROGRAM_POINT_SIZE);
 
-    auto points = generatePointCloud(100000);
+    GeneratedPoints = generatePointCloud(100000);
 
     GLuint vao, vbo;
     glGenVertexArrays(1, &vao);
@@ -131,13 +122,23 @@ int main()
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float), points.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, GeneratedPoints.getPoints().size() * sizeof(Point), GeneratedPoints.getPoints().data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    //position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    //colour
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+
+    //opacity
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    //concern
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Point), (void*)(7 * sizeof(float)));
+    glEnableVertexAttribArray(3);
 
     GLuint program = createProgram();
 
@@ -152,7 +153,6 @@ int main()
 
         glm::mat4 model = glm::mat4(1.0f);
 
-        // camera position (move backward so you can see points)
         float camX = DefaultViewpoint.camRadius * cos(DefaultViewpoint.camPitch) * sin(DefaultViewpoint.camYaw);
         float camY = DefaultViewpoint.camRadius * sin(DefaultViewpoint.camPitch);
         float camZ = DefaultViewpoint.camRadius * cos(DefaultViewpoint.camPitch) * cos(DefaultViewpoint.camYaw);
@@ -180,7 +180,7 @@ int main()
         glUseProgram(program);
         glBindVertexArray(vao);
 
-        glDrawArrays(GL_POINTS, 0, points.size() / 6);
+        glDrawArrays(GL_POINTS, 0, GeneratedPoints.getPoints().size() / 6);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
