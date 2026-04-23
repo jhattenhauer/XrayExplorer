@@ -12,15 +12,7 @@
 #include "visualSpace/perspective.cpp"
 
 pointCloud CloudRepresentation;
-perspective DefaultViewpoint;
-
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
-#include <vector>
-#include <cstdlib>
-#include <cstdio>
-#include <cmath>
+perspective DefaultViewpoint(0, 0, 3);
 
 const char* vertexShaderSrc = R"(
 #version 330 core
@@ -49,10 +41,6 @@ void main()
     FragColor = vec4(vColor, 1.0);
 }
 )";
-
-float camX = 0.0f;
-float camY = 0.0f;
-float camZ = 3.0f;
 
 GLuint compileShader(GLenum type, const char* src)
 {
@@ -106,19 +94,17 @@ std::vector<float> generatePointCloud(int count)
 
 void processInput(GLFWwindow* window)
 {
-    float speed = 0.05f;
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camZ -= speed;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camZ += speed;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camX -= speed;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camX += speed;
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        camY += speed;
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        camY -= speed;
+    float speed = 0.02f;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) DefaultViewpoint.camYaw -= speed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) DefaultViewpoint.camYaw += speed;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) DefaultViewpoint.camPitch += speed;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) DefaultViewpoint.camPitch -= speed;
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) DefaultViewpoint.camRadius -= speed;
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) DefaultViewpoint.camRadius += speed;
+
+    if (DefaultViewpoint.camRadius < 0.5f) DefaultViewpoint.camRadius = 0.5f;
+    if (DefaultViewpoint.camPitch >  1.5f) DefaultViewpoint.camPitch =  1.5f;
+    if (DefaultViewpoint.camPitch < -1.5f) DefaultViewpoint.camPitch = -1.5f;
 }
 
 int main()
@@ -167,10 +153,14 @@ int main()
         glm::mat4 model = glm::mat4(1.0f);
 
         // camera position (move backward so you can see points)
+        float camX = DefaultViewpoint.camRadius * cos(DefaultViewpoint.camPitch) * sin(DefaultViewpoint.camYaw);
+        float camY = DefaultViewpoint.camRadius * sin(DefaultViewpoint.camPitch);
+        float camZ = DefaultViewpoint.camRadius * cos(DefaultViewpoint.camPitch) * cos(DefaultViewpoint.camYaw);
+
         glm::mat4 view = glm::lookAt(
-            glm::vec3(camX, camY, camZ),   // camera position
-            glm::vec3(0.0f, 0.0f, 0.0f),   // look at origin
-            glm::vec3(0.0f, 1.0f, 0.0f)    // up direction
+            glm::vec3(camX, camY, camZ),
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f)
         );
 
         glm::mat4 proj = glm::perspective(

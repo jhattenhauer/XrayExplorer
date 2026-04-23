@@ -1,5 +1,12 @@
 struct perspective {
-    float angleX = 30.0f; 
-    float angleY = 45.0f;
-    float zoom = -20.0f;
+    public:
+        float camYaw = 0; 
+        float camPitch = 0;
+        float camRadius = 3.0f;
+
+        perspective(float x, float y, float z){
+            camYaw = x;
+            camPitch = y;
+            camRadius = z;
+        }
 };
