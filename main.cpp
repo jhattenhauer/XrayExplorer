@@ -1,48 +1,201 @@
 #include <stdlib.h>
+#include <vector>
 #include <cstdio>
+#include <cmath>
+#include <cstdlib>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <cstdio>
-#include <vector>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include "visualSpace/cloud.cpp"
+#include "visualSpace/perspective.cpp"
 
-static void error_callback(int error, const char* description)
+pointCloud CloudRepresentation;
+perspective DefaultViewpoint;
+
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+#include <vector>
+#include <cstdlib>
+#include <cstdio>
+#include <cmath>
+
+const char* vertexShaderSrc = R"(
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aColor;
+
+out vec3 vColor;
+
+uniform mat4 MVP;
+
+void main()
 {
-    fprintf(stderr, "Error: %s\n", description);
+    gl_Position = MVP * vec4(aPos, 1.0);
+    vColor = aColor;
+}
+)";
+
+const char* fragmentShaderSrc = R"(
+#version 330 core
+in vec3 vColor;
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(vColor, 1.0);
+}
+)";
+
+float camX = 0.0f;
+float camY = 0.0f;
+float camZ = 3.0f;
+
+GLuint compileShader(GLenum type, const char* src)
+{
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &src, nullptr);
+    glCompileShader(shader);
+    return shader;
+}
+
+GLuint createProgram()
+{
+    GLuint vs = compileShader(GL_VERTEX_SHADER, vertexShaderSrc);
+    GLuint fs = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSrc);
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+
+    return program;
+}
+
+std::vector<float> generatePointCloud(int count)
+{
+    std::vector<float> data;
+    data.reserve(count * 6);
+
+    for (int i = 0; i < count; i++)
+    {
+        float x = ((rand() % 200) / 100.0f) - 1.0f;
+        float y = ((rand() % 200) / 100.0f) - 1.0f;
+        float z = ((rand() % 200) / 100.0f) - 1.0f;
+
+        float r = (rand() % 100) / 100.0f;
+        float g = (rand() % 100) / 100.0f;
+        float b = (rand() % 100) / 100.0f;
+
+        data.push_back(x);
+        data.push_back(y);
+        data.push_back(z);
+        data.push_back(r);
+        data.push_back(g);
+        data.push_back(b);
+    }
+
+    return data;
+}
+
+void processInput(GLFWwindow* window)
+{
+    float speed = 0.05f;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camZ -= speed;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camZ += speed;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camX -= speed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camX += speed;
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        camY += speed;
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        camY -= speed;
 }
 
 int main()
 {
-    glfwSetErrorCallback(error_callback);
+    glfwInit();
 
-    if (!glfwInit())
-        return -1;
-
-    GLFWwindow* window = glfwCreateWindow(1920, 1080, "3D Viewer", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        return -1;
-    }
-
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Point Cloud", NULL, NULL);
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
 
-    // IMPORTANT: GLAD init
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        fprintf(stderr, "Failed to initialize GLAD\n");
+        printf("Failed to init GLAD\n");
         return -1;
     }
+
+    glEnable(GL_PROGRAM_POINT_SIZE);
+
+    auto points = generatePointCloud(100000);
+
+    GLuint vao, vbo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+
+    glBindVertexArray(vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float), points.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    GLuint program = createProgram();
 
     while (!glfwWindowShouldClose(window))
     {
-        glClear(GL_COLOR_BUFFER_BIT);
+        processInput(window);
+        
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+
+        float aspect = (float)width / (float)height;
+
+        glm::mat4 model = glm::mat4(1.0f);
+
+        // camera position (move backward so you can see points)
+        glm::mat4 view = glm::lookAt(
+            glm::vec3(camX, camY, camZ),   // camera position
+            glm::vec3(0.0f, 0.0f, 0.0f),   // look at origin
+            glm::vec3(0.0f, 1.0f, 0.0f)    // up direction
+        );
+
+        glm::mat4 proj = glm::perspective(
+            glm::radians(60.0f),
+            aspect,
+            0.1f,
+            100.0f
+        );
+
+        glm::mat4 MVP = proj * view * model;
+
+        GLuint loc = glGetUniformLocation(program, "MVP");
+        glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(MVP));
+        
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glUseProgram(program);
+        glBindVertexArray(vao);
+
+        glDrawArrays(GL_POINTS, 0, points.size() / 6);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
 }
