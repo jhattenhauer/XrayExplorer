@@ -1,6 +1,9 @@
-#include <GLFW/glfw3.h>
 #include <stdlib.h>
 #include <cstdio>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <cstdio>
+#include <vector>
 
 static void error_callback(int error, const char* description)
 {
@@ -14,7 +17,7 @@ int main()
     if (!glfwInit())
         return -1;
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "GLFW Window", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1920, 1080, "3D Viewer", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -24,7 +27,13 @@ int main()
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
-    // Main loop
+    // IMPORTANT: GLAD init
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        fprintf(stderr, "Failed to initialize GLAD\n");
+        return -1;
+    }
+
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT);

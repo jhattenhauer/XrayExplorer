@@ -16,8 +16,8 @@ add_executable(scatter
 )
 
 target_include_directories(scatter PRIVATE
-    ${CMAKE_SOURCE_DIR}/src          # resolves glad/glad.h
-    ${CMAKE_SOURCE_DIR}/src/include  # resolves KHR/khrplatform.h
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/include 
 )
 
 target_link_libraries(scatter PRIVATE
