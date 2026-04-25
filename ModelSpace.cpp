@@ -110,6 +110,7 @@ int main()
         printf("Failed to init GLAD\n");
         return -1;
     }
+    glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_PROGRAM_POINT_SIZE);
 
@@ -180,7 +181,7 @@ int main()
         glUseProgram(program);
         glBindVertexArray(vao);
 
-        glDrawArrays(GL_POINTS, 0, GeneratedPoints.getPoints().size() / 6);
+        glDrawArrays(GL_POINTS, 0, GeneratedPoints.getPoints().size());
 
         glfwSwapBuffers(window);
         glfwPollEvents();
