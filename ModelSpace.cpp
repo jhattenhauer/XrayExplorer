@@ -18,7 +18,9 @@
 
 pointCloud GeneratedPoints;
 perspective DefaultViewpoint(0, 0, 3);
+//std::string directory_path = "../singleData";
 std::string directory_path = "../dataset";
+
 
 const char* vertexShaderSrc = R"(
 #version 330 core
@@ -99,9 +101,6 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) DefaultViewpoint.camRadius -= speed;
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) DefaultViewpoint.camRadius += speed;
 
-    if (DefaultViewpoint.camRadius < 0.5f) DefaultViewpoint.camRadius = 0.5f;
-    if (DefaultViewpoint.camPitch >  1.5f) DefaultViewpoint.camPitch =  1.5f;
-    if (DefaultViewpoint.camPitch < -1.5f) DefaultViewpoint.camPitch = -1.5f;
 }
 
 int main(){
@@ -142,6 +141,8 @@ int main(){
                 uchar pixel = src.at<uchar>(y_position, x_position);
 
                 if (pixel != 0) {
+                    track_useless++; 
+                    if (track_useless % 9 == 1){
                     Point newPoint;
                 
                     newPoint.x = (x_position - max_width/2) / max_width;
@@ -156,6 +157,7 @@ int main(){
                 
                     GeneratedPoints.addPoint(newPoint);
                     //std::cout << "R:" << newPoint.r << " G:" << newPoint.g << " B:" << newPoint.b << " X:" << newPoint.x << " Y:" << newPoint.y << " Z:" << newPoint.z << std::endl;
+                    }
                 }
             }
         }
