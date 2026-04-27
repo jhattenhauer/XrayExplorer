@@ -11,6 +11,10 @@ public:
         return points;
     }
 
+    int totalPoints(){
+        return points.size();
+    }
+
     bool addPoint(Point newPoint){
         try{
             points.push_back(newPoint);

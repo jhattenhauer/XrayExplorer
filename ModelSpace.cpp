@@ -10,9 +10,15 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "visualSpace/cloud.cpp"
 #include "visualSpace/perspective.cpp"
+#include <opencv2/opencv.hpp>
+#include <iostream>
+#include <string>
+#include <filesystem>
+#include <algorithm>
 
 pointCloud GeneratedPoints;
 perspective DefaultViewpoint(0, 0, 3);
+std::string directory_path = "../dataset";
 
 const char* vertexShaderSrc = R"(
 #version 330 core
@@ -98,8 +104,64 @@ void processInput(GLFWwindow* window)
     if (DefaultViewpoint.camPitch < -1.5f) DefaultViewpoint.camPitch = -1.5f;
 }
 
-int main()
-{
+int main(){
+    std::vector<std::filesystem::directory_entry> files;
+    for (const auto& file_iterator : std::filesystem::directory_iterator(directory_path)) {
+        if (std::filesystem::is_regular_file(file_iterator)) {
+            files.push_back(file_iterator);
+        }
+    }
+
+    std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) {
+        auto extractNumber = [](const std::string& filename) -> int {
+            size_t open  = filename.rfind('(');
+            size_t close = filename.rfind(')');
+            if (open != std::string::npos && close != std::string::npos && close > open) {
+                return std::stoi(filename.substr(open + 1, close - open - 1));
+            }
+            return -1;
+        };
+        return extractNumber(a.path().stem().string()) < extractNumber(b.path().stem().string());
+    });
+
+    int z_position = 0;
+    for (const auto& file_iterator : files) {
+        cv::Mat src = cv::imread(file_iterator.path().string(), cv::IMREAD_GRAYSCALE);
+
+        // FIX: early-exit guard moved to top of loop, before pixel processing
+        if (src.empty()) {
+            std::cout << "Image not detected: " << file_iterator.path() << std::endl;
+            continue;
+        }
+
+        for(int x_position = 0; x_position < src.rows; x_position++) {
+            for(int y_position = 0; y_position < src.cols; y_position++) {
+                cv::Vec3b& pixel = src.at<cv::Vec3b>(x_position, y_position);
+                // Access channels: pixel[0] (Blue), pixel[1] (Green), pixel[2] (Red)
+
+                if (pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0){
+
+                    Point newPoint;
+                    newPoint.x = x_position;
+                    newPoint.y = y_position;
+                    newPoint.z = z_position;
+                    
+                    newPoint.r = pixel[2];
+                    newPoint.g = pixel[1];
+                    newPoint.b = pixel[0];
+
+                    newPoint.opacity = 0.5;
+                    newPoint.concern = 0;
+
+                    GeneratedPoints.addPoint(newPoint);
+                }
+            }
+        }
+        z_position++;
+    }
+
+    std::cout << "Number of points in cloud: " << GeneratedPoints.totalPoints() << std::endl;
+
     glfwInit();
 
     GLFWwindow* window = glfwCreateWindow(1920, 1080, "Point Cloud", NULL, NULL);
@@ -110,11 +172,14 @@ int main()
         printf("Failed to init GLAD\n");
         return -1;
     }
+
+    std::cout << "Vendor:   " << glGetString(GL_VENDOR)   << std::endl;
+    std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;
+    std::cout << "Version:  " << glGetString(GL_VERSION)  << std::endl;
+
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_PROGRAM_POINT_SIZE);
-
-    GeneratedPoints = generatePointCloud(100000);
 
     GLuint vao, vbo;
     glGenVertexArrays(1, &vao);
