@@ -57,7 +57,7 @@ int main() {
                 newPoint.g = pixel[1];
                 newPOint.b = pixel[0];
 
-                newPoint.opacity = 0.5;
+                newPoint.opacity = 1;
                 newPoint.concern = 0;
 
                 GeneratedPoints.addPoint(newPoint);

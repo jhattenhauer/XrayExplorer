@@ -124,9 +124,12 @@ int main(){
         return extractNumber(a.path().stem().string()) < extractNumber(b.path().stem().string());
     });
 
-    int z_position = 0;
+    float max_depth = files.size();
+    float z_position = 0;
     for (const auto& file_iterator : files) {
         cv::Mat src = cv::imread(file_iterator.path().string(), cv::IMREAD_GRAYSCALE);
+        float max_width = src.cols;
+        float max_length = src.rows;
 
         // FIX: early-exit guard moved to top of loop, before pixel processing
         if (src.empty()) {
@@ -134,23 +137,23 @@ int main(){
             continue;
         }
 
-        for(int x_position = 0; x_position < src.rows; x_position++) {
-            for(int y_position = 0; y_position < src.cols; y_position++) {
+        for(float x_position = 0; x_position < src.rows; x_position++) {
+            for(float y_position = 0; y_position < src.cols; y_position++) {
                 cv::Vec3b& pixel = src.at<cv::Vec3b>(x_position, y_position);
                 // Access channels: pixel[0] (Blue), pixel[1] (Green), pixel[2] (Red)
 
                 if (pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0){
 
                     Point newPoint;
-                    newPoint.x = x_position;
-                    newPoint.y = y_position;
-                    newPoint.z = z_position;
+                    newPoint.x = x_position / max_width;
+                    newPoint.y = y_position / max_length;
+                    newPoint.z = z_position / max_depth;
                     
                     newPoint.r = pixel[2];
                     newPoint.g = pixel[1];
                     newPoint.b = pixel[0];
 
-                    newPoint.opacity = 0.5;
+                    newPoint.opacity = 1;
                     newPoint.concern = 0;
 
                     GeneratedPoints.addPoint(newPoint);
