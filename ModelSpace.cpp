@@ -137,25 +137,23 @@ int main(){
             continue;
         }
 
-        for(float x_position = 0; x_position < src.rows; x_position++) {
-            for(float y_position = 0; y_position < src.cols; y_position++) {
-                cv::Vec3b& pixel = src.at<cv::Vec3b>(x_position, y_position);
-                // Access channels: pixel[0] (Blue), pixel[1] (Green), pixel[2] (Red)
-                track_useless++;
-                if (pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0){
+        for(float y_position = 0; y_position < src.rows; y_position++) {
+            for(float x_position = 0; x_position < src.cols; x_position++) {
+                uchar pixel = src.at<uchar>(y_position, x_position);
 
+                if (pixel != 0) {
                     Point newPoint;
+                
                     newPoint.x = x_position / max_width;
                     newPoint.y = y_position / max_length;
                     newPoint.z = z_position / max_depth;
-                    
-                    newPoint.r = pixel[2];
-                    newPoint.g = pixel[1];
-                    newPoint.b = pixel[0];
-
-                    newPoint.opacity = 1;
-                    newPoint.concern = 0;
-
+                
+                    float value = pixel / 255.0f;
+                    value = pow(value, 1.0f / 2.2f);
+                    newPoint.r = value;
+                    newPoint.g = value;
+                    newPoint.b = value;
+                
                     GeneratedPoints.addPoint(newPoint);
                     //std::cout << "R:" << newPoint.r << " G:" << newPoint.g << " B:" << newPoint.b << " X:" << newPoint.x << " Y:" << newPoint.y << " Z:" << newPoint.z << std::endl;
                 }
@@ -177,9 +175,9 @@ int main(){
         return -1;
     }
 
-    std::cout << "Vendor:   " << glGetString(GL_VENDOR)   << std::endl;
+    std::cout << "Vendor: " << glGetString(GL_VENDOR) << std::endl;
     std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;
-    std::cout << "Version:  " << glGetString(GL_VERSION)  << std::endl;
+    std::cout << "Version: " << glGetString(GL_VERSION) << std::endl;
 
     glEnable(GL_DEPTH_TEST);
 
@@ -243,6 +241,7 @@ int main(){
         glm::mat4 MVP = proj * view * model;
 
         GLuint loc = glGetUniformLocation(program, "MVP");
+        glUseProgram(program);
         glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(MVP));
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
