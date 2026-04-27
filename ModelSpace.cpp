@@ -124,6 +124,7 @@ int main(){
         return extractNumber(a.path().stem().string()) < extractNumber(b.path().stem().string());
     });
 
+    int track_useless = 0;
     float max_depth = files.size();
     float z_position = 0;
     for (const auto& file_iterator : files) {
@@ -131,7 +132,6 @@ int main(){
         float max_width = src.cols;
         float max_length = src.rows;
 
-        // FIX: early-exit guard moved to top of loop, before pixel processing
         if (src.empty()) {
             std::cout << "Image not detected: " << file_iterator.path() << std::endl;
             continue;
@@ -141,8 +141,8 @@ int main(){
             for(float y_position = 0; y_position < src.cols; y_position++) {
                 cv::Vec3b& pixel = src.at<cv::Vec3b>(x_position, y_position);
                 // Access channels: pixel[0] (Blue), pixel[1] (Green), pixel[2] (Red)
-
-                if (pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0){
+                track_useless++;
+                if (pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0){
 
                     Point newPoint;
                     newPoint.x = x_position / max_width;
@@ -157,6 +157,7 @@ int main(){
                     newPoint.concern = 0;
 
                     GeneratedPoints.addPoint(newPoint);
+                    //std::cout << "R:" << newPoint.r << " G:" << newPoint.g << " B:" << newPoint.b << " X:" << newPoint.x << " Y:" << newPoint.y << " Z:" << newPoint.z << std::endl;
                 }
             }
         }
