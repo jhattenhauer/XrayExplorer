@@ -2,3 +2,4 @@ build/
 src/
 dataset/
 processed/
+singleData/

@@ -144,9 +144,9 @@ int main(){
                 if (pixel != 0) {
                     Point newPoint;
                 
-                    newPoint.x = x_position / max_width;
-                    newPoint.y = y_position / max_length;
-                    newPoint.z = z_position / max_depth;
+                    newPoint.x = (x_position - max_width/2) / max_width;
+                    newPoint.y = (y_position - max_length/2) / max_length;
+                    newPoint.z = (z_position) / max_depth;
                 
                     float value = pixel / 255.0f;
                     value = pow(value, 1.0f / 2.2f);
